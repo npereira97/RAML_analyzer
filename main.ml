@@ -59,6 +59,8 @@ module Extract = struct
 	    close_in ch;
 	    s)
 
+	let parse_tree_of_file s = to_parsetree @@ read_whole_file s
+
 	let code : string =  read_whole_file "main.ml"
 
 	let all_funs = to_parsetree code >>= fun xs -> 
@@ -84,28 +86,47 @@ module Function_bank = struct
 
 	let (>>=) = Extract.(>>=) 
 
-	let load_module (file : string) = 
+	let load_module (file : string) : (string , Parsetree.structure) Hashtbl.t = 
 		let table = Hashtbl.create ~random:true 100 in 
 		let _ = (Extract.to_parsetree @@ Extract.read_whole_file file) >>= (fun ts -> 
-				 Some (List.map (fun t -> Extract.get_binding_name t >>= (fun name -> Some (Hashtbl.add table name t))) ts)) in 
+				 Some (List.map (fun t -> Extract.get_binding_name t >>= (fun name -> Some (Hashtbl.add table name [t]))) ts)) in 
 		table
 
-	let load_modules ?(dir=".") = 
+	let load_modules ?(dir=".") =
+		let rec last xs = match xs with
+						| [x] -> x 
+						| x :: xs -> last xs in 
 		let files = Extract.file_list dir in 
-		let _ = List.map print_endline files in
+		(*let _ = List.map print_endline files in*)
 		let dir_len = String.length dir in 
 		let module_names = List.map (fun s ->  ( String.make 1 @@ Char.uppercase_ascii @@ String.get s 0) ^ 
 			 (String.sub s 1 ((String.length s) - 4)))
 		 @@ 
-			 List.map (fun s -> String.sub s (1 + dir_len) @@ (String.length s) - 1  - dir_len  ) files in
-		let _ = List.map print_endline module_names in 
+			 List.map (fun s -> last @@  Str.split (Str.regexp "/") s) files in
+		(*let _ = List.map print_endline module_names in *)
 		let modules = List.map load_module files in 
 		let table = Hashtbl.create ~random:true (List.length files) in
 		let _ = List.map2 (fun name hashtable -> Hashtbl.add table name hashtable) module_names modules in 
 		table 
 
 
-	let _ = load_modules ~dir:"./testdir"
+	let lookup (function_bank:t) module_name function_name : Parsetree.structure option = 
+		Hashtbl.find_opt function_bank module_name >>= (fun _mod -> 
+			Hashtbl.find_opt _mod function_name
+		)
+
+
+	let bank = load_modules ~dir:"./testdir"
+
+	
+	let print_tree t = print_endline @@ Pprintast.string_of_structure t
+
+	let test x = lookup bank "List" "map2" >>= (fun t -> Extract.parse_tree_of_file x >>= (fun main_t ->
+		Some (print_tree @@ t @ main_t)
+	))
+
+	let _ = test "test.ml"
+
 
 end 
 
