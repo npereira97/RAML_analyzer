@@ -68,6 +68,12 @@ module Extract = struct
 					  match get_binding_name x with 
 					  | None -> []
 					  | Some x -> [x]) xs)
+
+
+	let path_to_name = let rec last xs = match xs with
+						| [x] -> x 
+						| x :: xs -> last xs in 
+						(fun s -> last @@  Str.split (Str.regexp "/") s)
 		
 
 	let get_files dir =  input_line @@ Unix.open_process_in @@  "find " ^ dir ^ " | grep -E \"*[.]ml$\" | tr '\n' ' '"
@@ -79,12 +85,41 @@ module Extract = struct
 
 end
 
+let (>>=) = Extract.(>>=)
+
+
+let _ = let paths = Extract.file_list "hw1" in 
+		let file_names = List.map Extract.path_to_name paths in 
+		let funcs = List.map (Extract.extract_funcs_from_file ["fact"]) paths in 
+		List.map2 (fun name func -> let _ =   func >>= (fun func -> 
+					Some (print_endline @@ Pprintast.string_of_structure func)) in 
+					(name,func))  file_names funcs
+
+
+let test_mapper argv =
+	let open Asttypes in 
+	let open Parsetree in 
+	let open Ast_mapper in 
+  { default_mapper with
+    expr = fun mapper expr ->
+      match expr with
+      | { pexp_desc =  Pexp_ident { txt = Ldot (Lident modu ,func) ;loc = l } } ->
+       	let _ = print_endline modu in 
+        expr
+      | other -> default_mapper.expr mapper other; }
+
 
 
 module Function_bank = struct 
 	type t =  (string,  (string , Parsetree.structure) Hashtbl.t) Hashtbl.t
 
 	let (>>=) = Extract.(>>=) 
+
+	let (>|=) x (f,alt) = 
+		match x >>= f with
+		| None -> alt 
+		| Some a -> Some a
+
 
 	let load_module (file : string) : (string , Parsetree.structure) Hashtbl.t = 
 		let table = Hashtbl.create ~random:true 100 in 
@@ -125,10 +160,8 @@ module Function_bank = struct
 		Some (print_tree @@ t @ main_t)
 	))
 
-	let _ = test "test.ml"
-
-
 end 
+
 
 
 
