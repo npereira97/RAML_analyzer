@@ -1,12 +1,13 @@
 
 let sys_time = Sys.time
-
+open Preprocess
 open Core
 
 open Format
 open Toolbox
 open Rconfig
 
+let _ = Preprocess.Extract.(>>=)
 let raml_version = "1.5.0"
 let raml_release_date = "June 2020"
 let raml_authors = ["Jan Hoffmann (Carnegie Mellon)"
