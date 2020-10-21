@@ -63,7 +63,7 @@ module Extract = struct
 
 	let parse_tree_of_file s = to_parsetree @@ read_whole_file s
 
-	let code : string =  read_whole_file "main.ml"
+	(*let code : string =  read_whole_file "main.ml"*)
 
 	let all_funs = to_parsetree code >>= fun xs -> 
 			Some (List.concat @@ List.map (fun x -> 
@@ -184,7 +184,7 @@ let extract_funs (hw_path:string) (fun_list:string list) =
 		let funcs = List.map (Extract.extract_funcs_from_file fun_list) paths in 
 		List.map2 (fun name func -> let _ =   func >>= (fun func -> 
 					Some (print_endline @@ Pprintast.string_of_structure func)) in 
-					(name,func))  file_names funcs
+					(name,(fun (Some x) -> Pprintast.string_of_structure x) func))  file_names funcs
 
 
 

@@ -14,5 +14,13 @@ let string_helper = {
 		a_of_sexp = Sexplib.Std.string_of_sexp}
 
 
+let write_to_disk (hw_path: string) (questions : string list)  = 
+	let qs = List.map (fun (_,x)-> x) (Process.extract_funs hw_path questions) in 
+	let sexp = ((list_helper string_helper).sexp_of_a) qs in 
+	print_string (Sexp.to_string sexp)
 
-let _ = print_string "hola"
+
+
+let _ = write_to_disk  "~/Documents/fall-2020-students-code/hw3" ["map";"add_ingredient";"get_all_ingredients"]
+
+
