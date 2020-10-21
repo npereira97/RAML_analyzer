@@ -3,8 +3,8 @@
 
 
 
-ocamlc -I +str str.cma -I +unix unix.cma -I +compiler-libs ocamlcommon.cma -a process.ml -o process.cma
-ocamlfind ocamlc -I process process.cma -package sexplib nada.ml
+ocamlfind ocamlc -I +str str.cma -I +compiler-libs ocamlcommon.cma -package sexplib,unix -a process.ml -o process.cma
+ocamlfind ocamlc -I process process.cma -g -linkpkg -package sexplib nada.ml
 
 
 
