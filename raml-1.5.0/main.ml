@@ -1,13 +1,14 @@
 
 let sys_time = Sys.time
-open Preprocess
+
 open Core
 
 open Format
 open Toolbox
 open Rconfig
 
-let _ = Preprocess.Extract.(>>=)
+
+
 let raml_version = "1.5.0"
 let raml_release_date = "June 2020"
 let raml_authors = ["Jan Hoffmann (Carnegie Mellon)"
@@ -381,7 +382,7 @@ and interface sourcefile env_inital =
 
 and gen_pervasives sourcefile = interface sourcefile Env.initial
 and gen_runtime sourcefile = interface sourcefile (initial_env ())
-
+(*
 let main argv =
   let args = List.tl_exn (Array.to_list argv) in
 
@@ -590,7 +591,44 @@ let main argv =
       end
     | _ -> print_usage_error ("'" ^ action ^ "' is not a valid action.")
 
-
+	
 let _ =
   Random.self_init ();
   main Sys.argv
+*)
+
+
+type 'a sexp_helper = 
+			{sexp_of_a : ('a -> Sexplib.Type.t) 
+			;a_of_sexp : ( Sexplib.Type.t -> 'a)}
+
+
+let list_helper helper = {sexp_of_a =  Sexplib.Std.sexp_of_list helper.sexp_of_a 
+			; a_of_sexp = Sexplib.Std.list_of_sexp helper.a_of_sexp}
+
+type student_solution = 
+{name:string
+;function_list : (string * string) list
+;file_path:string} [@@deriving sexp]
+
+
+let student_solution_helper = {sexp_of_a = sexp_of_student_solution;
+		a_of_sexp = student_solution_of_sexp}
+
+
+let parse_info s = ((list_helper student_solution_helper).a_of_sexp) (Sexp.of_string s)
+
+
+let f () : string = In_channel.input_all (open_in "preprocess/info")
+
+
+let _ = print_string (f ())
+
+let data : student_solution list = parse_info (f ())
+
+
+let _ = List.map (List.map data (fun x -> x.name)) print_endline 
+
+
+let _ = print_string "Hello, world, sexp"
+
