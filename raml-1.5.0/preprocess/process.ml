@@ -27,7 +27,6 @@ module Extract = struct
 		try
 			let buf = Lexing.from_string s in 
 			let parse_tree = Parse.implementation buf in 
-			(*let s = Pprintast.string_of_structure parse_tree in*)
 			Some parse_tree
 		with
 		| _ -> None
@@ -50,7 +49,7 @@ module Extract = struct
 		to_parsetree code >>= fun xs -> 
 		let funs =  (List.map (fun x -> get_binding_name x >>= (fun s -> 
 					match List.exists (fun a -> a = s) fun_list with 
-					| true -> Some x
+					| true -> Some (s,Pprintast.string_of_structure [x])
 					| false -> None)) xs) in 
 		let funs = List.filter (fun x -> x != None) funs in 
 		Some (List.map (function (Some x) -> x) funs) 
@@ -82,21 +81,12 @@ module Extract = struct
 
 	let file_list dir = Str.split (Str.regexp " ") (get_files dir)
 
-	let extract_funcs_from_file (func_names : string list) (file_name :string) = select_functions_ast func_names (read_whole_file file_name)
+	let extract_funcs_from_file (func_names : string list) (file_name :string)= (fun (Some x) -> x) @@ select_functions_ast func_names (read_whole_file file_name)
 
 
 end
 
 let (>>=) = Extract.(>>=)
-
-(*
-let _ = let paths = Extract.file_list "hw2" in 
-		let file_names = List.map Extract.path_to_name paths in
-		let funcs = List.map (Extract.extract_funcs_from_file ["compress"]) paths in 
-		List.map2 (fun name func -> let _ =   func >>= (fun func -> 
-					Some (print_endline @@ Pprintast.string_of_structure func)) in 
-					(name,func))  file_names funcs
-*)
 
 
 let test_mapper argv =
@@ -135,13 +125,11 @@ module Function_bank = struct
 						| [x] -> x 
 						| x :: xs -> last xs in 
 		let files = Extract.file_list dir in 
-		(*let _ = List.map print_endline files in*)
 		let dir_len = String.length dir in 
 		let module_names = List.map (fun s ->  ( String.make 1 @@ Char.uppercase_ascii @@ String.get s 0) ^ 
 			 (String.sub s 1 ((String.length s) - 4)))
 		 @@ 
 			 List.map (fun s -> last @@  Str.split (Str.regexp "/") s) files in
-		(*let _ = List.map print_endline module_names in *)
 		let modules = List.map load_module files in 
 		let table = Hashtbl.create ~random:true (List.length files) in
 		let _ = List.map2 (fun name hashtable -> Hashtbl.add table name hashtable) module_names modules in 
@@ -154,37 +142,28 @@ module Function_bank = struct
 		)
 
 
-	(*let bank = load_modules ~dir:"./testdir"
-
-
-	let print_tree t = print_endline @@ Pprintast.string_of_structure t
-
-	let test x = lookup bank "List" "map2" >>= (fun t -> Extract.parse_tree_of_file x >>= (fun main_t ->
-		Some (print_tree @@ t @ main_t)
-	)) *)
 
 end 
 
 
 
-let _ = Extract.file_list "/home/neil/Documents/fall-2020-students-code/hw3"
-
-(*
-let _ = Extract.extract_funcs_from_file ["map";"add_ingredient";"get_all_ingredients"] "~/Documents/fall-2020-students-code/hw3"
-
-*)
+let coerce = (fun (Some x) -> x)
 
 let string_of_structure = Pprintast.string_of_structure
 
 
 let extract_funs (hw_path:string) (fun_list:string list) =
 
-  let paths = Extract.file_list hw_path in 
+  		let paths = Extract.file_list hw_path in 
 		let file_names = List.map Extract.path_to_name paths in
 		let funcs = List.map (Extract.extract_funcs_from_file fun_list) paths in 
-		List.map2 (fun name func -> let _ =   func >>= (fun func -> 
-					Some (print_endline @@ Pprintast.string_of_structure func)) in 
-					(name,(fun (Some x) -> Pprintast.string_of_structure x) func))  file_names funcs
+		let f = (fun x -> match x with 
+					| None -> []
+					| Some x -> x) in
+		let inter = List.map2 (fun name func_list ->  
+					(name,func_list))  file_names funcs in
+
+		List.map2 (fun (a,b) c -> (a,b,c)) inter paths
 
 
 
