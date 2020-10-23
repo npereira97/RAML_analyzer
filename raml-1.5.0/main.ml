@@ -172,6 +172,51 @@ let print_data amode_name m_name degree time constr =
   ) amode_name m_name degree time constr
 
 
+let gen_polynomial ?(simple_name=false) ?(indent="")= 
+
+		let lines s= String.split_on_chars ~on:['\n'] s in
+
+
+		let buf = Buffer.create 20000 in
+		let f = Format.formatter_of_buffer buf in
+		let string_of_buf () = 
+					let s = Buffer.contents buf in
+					let _ = Buffer.clear buf in 
+					s in
+					
+		begin
+			fun (fid, atanno, rtanno) -> 
+
+				let arrow_type =
+					let open Annotations in 
+					let open Rtypes in
+				      match atanno.tan_type with
+					| Ttuple ts -> Tarrow (ts, rtanno.tan_type, ())
+					| _ -> raise (Invalid_argument "Expecting tuple type.")
+				    in
+				 let fid = 
+				      if simple_name then
+					match String.lsplit2 fid ~on:'#' with
+					  | None -> fid
+					  | Some (s1,s2) -> s1
+				      else
+					fid
+				    in
+				
+				let (pol, descs) = Polynomials.describe_pol atanno in
+				let polynomial = string_of_buf (Pprint.fprint_polynomial f pol)
+				(*
+				let desc = if List.length descs > 0 then
+							[Break;Text "where";Break] @ (weave Break (List.map (descs) (fun x -> Text x)))
+						      else
+							[]
+				*)
+				in polynomial
+				
+				 
+		end
+
+
 let analyze_prog analysis_mode m_name metric deg1 deg2 collect_fun_types e env =
   let start_time = sys_time () in
   let amode_name =
@@ -233,7 +278,7 @@ let analyze_prog analysis_mode m_name metric deg1 deg2 collect_fun_types e env =
 	    printf "===="
 	  end
       in
-      let _ = printf "\n\n  Derived %s bound: %.2f\n" amode_name q in
+      let _ = printf "\n\n  Derived %s bound: %.2f\n" amode_name (q) in
       let constr = Clp.get_num_constraints () in
       let time = sys_time () -. start_time in
       print_data amode_name m_name deg time constr
@@ -292,8 +337,9 @@ let analyze_module analysis_mode m_name metric deg1 deg2 collect_fun_types fname
 	    print_data amode_name m_name deg time constr;
 	    printf "====\n\n"
 	  end
-      | Some (atarg,atres,fun_type_list) ->
+      | Some (atarg ,atres,fun_type_list) ->
 	begin
+	(*let k : int = fun_type_list in *)
 	  printf "\n%!";
 	  let _ = Pprint.print_anno_funtype ~indent:("  ") (f_name, atarg, atres) in
 	  let constr = Clp.get_num_constraints () in
@@ -609,7 +655,8 @@ let list_helper helper = {sexp_of_a =  Sexplib.Std.sexp_of_list helper.sexp_of_a
 type student_solution = 
 {name:string
 ;function_list : (string * string) list
-;file_path:string} [@@deriving sexp]
+;file_path:string
+;prelude:string} [@@deriving sexp]
 
 
 let student_solution_helper = {sexp_of_a = sexp_of_student_solution;
@@ -619,16 +666,105 @@ let student_solution_helper = {sexp_of_a = sexp_of_student_solution;
 let parse_info s = ((list_helper student_solution_helper).a_of_sexp) (Sexp.of_string s)
 
 
-let f () : string = In_channel.input_all (open_in "preprocess/info")
+let f () : string = In_channel.input_all (open_in "preprocess/data_map")
 
 
-let _ = print_string (f ())
-
-let data : student_solution list = parse_info (f ())
+(*let _ = print_string (f ()) *)
 
 
-let _ = List.map (List.map data (fun x -> x.name)) print_endline 
 
 
-let _ = print_string "Hello, world, sexp"
+let valid_files =["Z1M-ZYP-PZA-K9S-hw3.ml";"LBB-GSH-EOG-OGX-hw3.ml";"MYM-A91-94W-UOE-hw3.ml";"NZO-ZFB-XJS-A9V-hw3.ml";"S1P-OVO-E4P-XWM-hw3.ml";"WGC-TXZ-SBR-NTA-hw3.ml";"HTG-GBB-JPC-BOM-hw3.ml";"ZBZ-ZOB-SGS-LK9-hw3.ml";"SWU-BGR-V9O-1LA-hw3.ml";"WOL-4JY-JDS-S3Z-hw3.ml";"GOO-1BA-3KG-1VP-hw3.ml";"PAW-TKC-1X1-M1A-hw3.ml";"DOO-YCH-GKX-GV1-hw3.ml";"SSS-SSE-ZAO-MUA-hw3.ml";"OR1-CGZ-XYL-YYZ-hw3.ml";"L9D-O4E-SRX-1ZB-hw3.ml";"BGT-B1J-DOG-DFO-hw3.ml";"BSG-OGY-OPU-UJU-hw3.ml";"EZW-HB1-KOH-3VE-hw3.ml";"OVO-1BO-NOA-9TH-hw3.ml";"4YB-DRF-WSE-DOS-hw3.ml";"1US-JH1-G9O-PUZ-hw3.ml";"WPB-T1L-ORK-1CR-hw3.ml";"VHN-NRO-B9N-NUV-hw3.ml";"WJZ-33P-LDT-1TS-hw3.ml";"HXR-Y1X-SYV-F3S-hw3.ml";"UUA-9EG-ZBZ-FDK-hw3.ml";"Y1S-LG1-KN1-LOK-hw3.ml";"HRV-TZJ-MOP-1WO-hw3.ml";"OZO-O1A-TJS-GRS-hw3.ml";"KKC-OBK-BOF-1HY-hw3.ml";"BL1-ZBY-UWZ-TKC-hw3.ml";"W1U-OMP-Z1S-NO1-hw3.ml";"VSH-HYA-B9R-HGD-hw3.ml";"M3L-43N-O4Z-KX1-hw3.ml";"L31-93O-PLB-3CY-hw3.ml";"OTM-SZR-AGM-9OO-hw3.ml";"ZK1-EBL-OVJ-FZ4-hw3.ml";"BL1-ZBY-UWZ-TKC-hw3.ml";"PPU-KKB-UZB-1X1-hw3.ml";"1AN-PTS-KWJ-GYE-hw3.ml";"DYD-RBZ-1F1-C4O-hw3.ml";"Z1M-ZYP-PZA-K9S-hw3.ml";"DOO-YCH-GKX-GV1-hw3.ml";"DJM-Y3H-1WZ-SFB-hw3.ml";"UZC-DR1-FMN-XCE-hw3.ml";"L9D-O4E-SRX-1ZB-hw3.ml";"ZLK-DEG-DFZ-BDZ-hw3.ml";"V1O-Z1O-1DB-FOB-hw3.ml";"LAF-GW1-4O1-9GH-hw3.ml"]
+
+
+
+
+let rec mem x lst =
+	match lst with 
+	| [] -> false 
+	| y :: ys -> (x = y) || (mem x ys)
+
+let data : student_solution list = List.filter (parse_info (f ())) (fun x -> mem x.name valid_files)
+
+
+
+
+
+let analyze_str_prog =  let analysis_mode = Mupper in 
+                    let m_name = "steps" in 
+                    let metric = Metric.m_eval in 
+                    (* Attempts to derive bound with lower degree, if it fails, it increase the degree and tries again *)
+                    let deg1 = 4 in (* lower degree*) 
+                    let deg2 = 4 in (* upper degree *)
+                    let pmode = Rconfig.Pnone in 
+                    let analyze_m = analyze_module analysis_mode m_name metric deg1 deg2 pmode in
+                    let analyze_p = analyze_prog analysis_mode m_name metric deg1 deg2 pmode in 
+			(fun (code:string)  -> 
+				let (m, env) = Parseraml.parse_raml_module_from_string code in
+				let _ = (analyze_m "placeholder" m env) in
+				()
+			)
+
+
+let counter = ref 0 
+let safify f = (fun s -> try 
+				let t = f s in 
+				let _ = counter := !counter + 1 in 
+				t
+			 with
+			 | _ ->())
+
+exception NotFound
+
+
+
+
+
+let rec foldl f e lst =
+	match lst with 
+	| [] -> e 
+	| x :: xs -> foldl f (f e x) xs
+
+let main argv = 
+  (* Uses JS CORE List and not ocaml stdlib List *)
+  let args = List.tl_exn (Array.to_list argv) in
+  match args with
+  | action::args ->
+	begin
+    match action with
+    | "gen-runtime" ->
+      begin match List.hd args with
+        | Some sourcefile ->
+          gen_runtime sourcefile
+        | None ->
+          let () = printf "Generating runtime mli files.\n\n" in
+          let () =
+            List.iter persistent_modules (fun m -> gen_runtime (String.lowercase m ^ ".mli"))
+          in
+          printf "\n"
+      end end
+  | _ -> let xs = List.map data (fun x -> ([],x.prelude) :: begin List.map x.function_list (fun (a,b) -> ([a],b) ) end ) in 
+	let (<*>) (a,b) (c,d)  = (a @ c, b ^ d) in
+	 let combine s = foldl (<*>) ([],"") s in 
+	 (*let _ = List.map xs (fun x -> print_endline @@ string_of_int (List.length x)) in*)
+	let ps  = List.map xs combine in 
+	let _ = List.map ps (fun (_,p) -> 
+		 (safify analyze_str_prog) p ) in
+		
+		()
+			
+			
+
+                    
+let _ = main (Sys.argv)
+
+
+
+
+
+
+
+
+
+
 

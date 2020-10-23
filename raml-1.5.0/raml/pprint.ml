@@ -694,7 +694,7 @@ let fprint_anno_funtype
       indent fprint_type_anno atanno
     ; fprintf f "\n%sNon-zero annotations of result:\n%a"
       indent fprint_type_anno rtanno
-    ; let (pol, descs) = describe_pol atanno in
+    ; let (pol, descs)  = describe_pol atanno in
       let _ = fprintf f "\n%sSimplified bound:\n   %s" indent indent in
       let _ = fprint_polynomial f pol in
       if List.length descs > 0 then
@@ -704,6 +704,45 @@ let fprint_anno_funtype
       else
 	()
     ; fprintf f "@."
+
+
+
+let print_polynomial
+    ?(indent="")
+    ?(simple_name=false)
+    f
+    (fid, atanno, rtanno)
+    =
+    let arrow_type =
+      match atanno.tan_type with
+	| Ttuple ts -> Tarrow (ts, rtanno.tan_type, ())
+	| _ -> raise (Invalid_argument "Expecting tuple type.")
+    in
+    let fid =
+      if simple_name then
+	match String.lsplit2 fid ~on:'#' with
+	  | None -> fid
+	  | Some (s1,s2) -> s1
+      else
+	fid
+    in
+    let fprint_raml_type f t = fprint_raml_type ~indent:2 f t in
+    fprintf f "@.== %s :\n\n%s%a@."
+      fid indent fprint_raml_type arrow_type
+    ; fprintf f "\n%sNon-zero annotations of the argument:\n%a"
+      indent fprint_type_anno atanno
+    ; fprintf f "\n%sNon-zero annotations of result:\n%a"
+      indent fprint_type_anno rtanno
+    ; let (pol, descs)  = describe_pol atanno in
+      let _ = fprintf f "\n%sSimplified bound:\n   %s" indent indent in
+      let _ = fprint_polynomial f pol in
+      if List.length descs > 0 then
+	let _ = fprintf f "\n %swhere" indent in
+	fprint_pol_desc f descs;
+	fprintf f "\n"
+      else
+	()
+    ; fprintf f "@."; 1
 
 
 let print_anno_funtype ?(indent="") ?(simple_name=false) ?output:(formatter=std_formatter) atyp  =

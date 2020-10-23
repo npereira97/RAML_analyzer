@@ -54,7 +54,7 @@ module Extract = struct
 		let funs = List.filter (fun x -> x != None) funs in 
 		Some (List.map (function (Some x) -> x) funs) 
 
-	let read_whole_file = (fun filename -> 
+	let read_whole_file : (string -> string)= (fun filename -> 
 	    let ch = open_in filename in
 	    let s = really_input_string ch (in_channel_length ch) in
 	    close_in ch;
