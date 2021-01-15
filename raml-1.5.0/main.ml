@@ -684,9 +684,13 @@ let rec mem x lst =
 	| [] -> false 
 	| y :: ys -> (x = y) || (mem x ys)
 
+(* 
+
+	Respecting
 let data : student_solution list = List.filter (parse_info (f ())) (fun x -> mem x.name valid_files)
 
-
+ *)
+let data : student_solution list = (parse_info (f ())) 
 
 
 
@@ -747,13 +751,16 @@ let main argv =
 	let (<*>) (a,b) (c,d)  = (a @ c, b ^ d) in
 	 let combine s = foldl (<*>) ([],"") s in 
 	 (*let _ = List.map xs (fun x -> print_endline @@ string_of_int (List.length x)) in*)
-	let ps  = List.map xs combine in 
-	let _ = List.map ps (fun (_,p) -> 
-		 (safify analyze_str_prog) p ) in
+	let ps  = Parmap.parmap combine (L xs) in 
+	let _  = Parmap.parmap ~ncores:(50) (fun (_,p) -> 
+		 (safify analyze_str_prog) p) (L ps) in
 		
 		()
-			
-			
+	
+
+let _  = Parmap.get_ncores ();; 
+
+let _ = Parmap.parmap (fun x -> x + 1) (L []);;
 
                     
 let _ = main (Sys.argv)

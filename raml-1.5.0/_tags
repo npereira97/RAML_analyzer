@@ -1,2 +1,2 @@
-true: package(core), package(ppx_jane), use_clp
+true: package(core), package(ppx_jane), package(parmap), use_clp
 true: thread, rectypes
