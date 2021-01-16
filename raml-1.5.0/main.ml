@@ -8,6 +8,15 @@ open Toolbox
 open Rconfig
 
 
+type result = TypeError | Fail 
+			| Success of {bound : string;constraints : int}
+
+
+let string_of_result r  = 
+	match r with 
+	| TypeError -> "TypeError"
+	| Fail -> "Fail"
+	| Success r -> "Success [[\n" ^ (r.bound) ^ "]]\n"  
 
 let raml_version = "1.5.0"
 let raml_release_date = "June 2020"
@@ -286,6 +295,14 @@ let analyze_prog analysis_mode m_name metric deg1 deg2 collect_fun_types e env =
   printf "\n  Trying degree: ";
   analyze_exp deg1 deg2
 
+
+let buf = Buffer.create 20000;;
+let f = Format.formatter_of_buffer buf;;
+let string_of_buf () = 
+			let s = Buffer.contents buf in
+			let _ = Buffer.clear buf in 
+			s;;
+
 let analyze_module analysis_mode m_name metric deg1 deg2 collect_fun_types fname m env =
 
   let amode_name =
@@ -335,13 +352,16 @@ let analyze_module analysis_mode m_name metric deg1 deg2 collect_fun_types fname
 	    let time = sys_time () -. start_time in
 	    printf "\n--";
 	    print_data amode_name m_name deg time constr;
-	    printf "====\n\n"
+	    printf "====\n\n";(f_name,Fail)
 	  end
       | Some (atarg ,atres,fun_type_list) ->
 	begin
 	(*let k : int = fun_type_list in *)
 	  printf "\n%!";
 	  let _ = Pprint.print_anno_funtype ~indent:("  ") (f_name, atarg, atres) in
+	  let bound = Pprint.fprint_anno_funtype f (f_name, atarg, atres) in
+	  let bound = string_of_buf () in
+
 	  let constr = Clp.get_num_constraints () in
 	  let time = sys_time () -. start_time in
 	  printf "--";
@@ -362,7 +382,7 @@ let analyze_module analysis_mode m_name metric deg1 deg2 collect_fun_types fname
                   printf "====\n\n"
 	        end
           in
-          ()
+           (f_name,Success {constraints = constr;bound = bound;})
 	end
     in
     let _ = printf "\n  Trying degree: " in
@@ -372,9 +392,11 @@ let analyze_module analysis_mode m_name metric deg1 deg2 collect_fun_types fname
   let f (f_name,e) =
     match e.Expressions.exp_type with
     | Rtypes.Tarrow _ -> analyze_fun f_name e
-    | _ -> ()
+    | _ -> ("",Fail)
   in
-  List.iter ~f m
+  let _ = print_string "\n************\n" in
+  let _ = print_int (List.length m) in
+  List.map ~f m
 
 
 let rec open_implicit_module m env =
@@ -705,9 +727,7 @@ let analyze_str_prog =  let analysis_mode = Mupper in
                     let analyze_p = analyze_prog analysis_mode m_name metric deg1 deg2 pmode in 
 			(fun (code:string)  -> 
 				let (m, env) = Parseraml.parse_raml_module_from_string code in
-				let _ = (analyze_m "placeholder" m env) in
-				()
-			)
+				analyze_m "placeholder" m env)
 
 
 let counter = ref 0 
@@ -716,18 +736,28 @@ let safify f = (fun s -> try
 				let _ = counter := !counter + 1 in 
 				t
 			 with
-			 | _ ->())
+			 | _ -> []  )
 
 exception NotFound
 
 
+let print_list f = 
+	(fun xs -> print_string "[\n"; List.map xs f; print_string "]\n") 
 
 
+let rec take n xs = 
+	match n with 
+	| 0 -> []
+	| _ -> match xs with 
+			| [] -> []
+			| x :: xs -> x :: (take (n-1) xs)
 
 let rec foldl f e lst =
 	match lst with 
 	| [] -> e 
 	| x :: xs -> foldl f (f e x) xs
+
+exception IdontKnow 
 
 let main argv = 
   (* Uses JS CORE List and not ocaml stdlib List *)
@@ -751,17 +781,26 @@ let main argv =
 	let (<*>) (a,b) (c,d)  = (a @ c, b ^ d) in
 	 let combine s = foldl (<*>) ([],"") s in 
 	 (*let _ = List.map xs (fun x -> print_endline @@ string_of_int (List.length x)) in*)
-	let ps  = Parmap.parmap combine (L xs) in 
-	let _  = Parmap.parmap ~ncores:(50) (fun (_,p) -> 
+	let ps  = Parmap.parmap combine (L xs) in
+	let ps = take 50 ps in  
+	
+
+	let rss  = Parmap.parmap ~ncores:(10) (fun (_,p) -> 
 		 (safify analyze_str_prog) p) (L ps) in
+
+	let _ = print_string "\n\n\n\n\n\n" in
+
+	let hd xs = match xs with 
+				| x :: xs -> x in 
+	
+
+	let _ = List.map rss 
+		(fun rs -> print_endline "======="; 
+					List.map rs (fun (name,result) -> print_string (string_of_result result) );
+					 print_endline "======="; ) in
 		
 		()
 	
-
-let _  = Parmap.get_ncores ();; 
-
-let _ = Parmap.parmap (fun x -> x + 1) (L []);;
-
                     
 let _ = main (Sys.argv)
 
